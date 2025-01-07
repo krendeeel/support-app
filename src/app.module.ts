@@ -8,6 +8,7 @@ import { AnswerModule } from './answer/answer.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { QuestionModule } from './question/question.module';
 import { ConsultantModule } from './consultant/consultant.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -20,5 +21,6 @@ import { ConsultantModule } from './consultant/consultant.module';
     EventEmitterModule.forRoot({ global: true }),
     MongooseModule.forRoot(process.env.DATABASE_URL),
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
