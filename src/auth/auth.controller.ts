@@ -19,7 +19,7 @@ export class AuthController {
   ) {
     response.cookie('token', request.user.token, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24,
     });
 
