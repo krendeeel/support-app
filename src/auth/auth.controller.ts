@@ -17,13 +17,7 @@ export class AuthController {
     @Req() request: IRequest,
     @Res() response: Response,
   ) {
-    response.cookie('token', request.user.token, {
-      httpOnly: true,
-      sameSite: 'none',
-      maxAge: 1000 * 60 * 60 * 24,
-    });
-
-    return response.redirect(process.env.GOOGLE_AUTH_REDIRECT_URL);
+    return response.redirect(`${process.env.GOOGLE_AUTH_REDIRECT_URL}?token=${request.user.token}`);
   }
 
   @UseGuards(YandexAuthGuard)
@@ -36,12 +30,6 @@ export class AuthController {
     @Req() request: IRequest,
     @Res() response: Response,
   ) {
-    response.cookie('token', request.user.token, {
-      httpOnly: true,
-      sameSite: 'strict',
-      maxAge: 1000 * 60 * 60 * 24,
-    });
-
-    return response.redirect(process.env.YANDEX_AUTH_REDIRECT_URL);
+    return response.redirect(`${process.env.YANDEX_AUTH_REDIRECT_URL}?token=${request.user.token}`);
   }
 }
