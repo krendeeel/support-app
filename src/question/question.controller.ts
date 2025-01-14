@@ -39,6 +39,18 @@ export class QuestionController {
     });
   }
 
+  @UseGuards(ConsultantAuthGuard)
+  @Get('all')
+  public async getAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<Question[]> {
+    return this.questionService.getAllQuestions({
+      page,
+      limit,
+    });
+  }
+
   @UseGuards(UserAuthGuard)
   @Get(':id')
   public async get(
@@ -121,18 +133,6 @@ export class QuestionController {
     await this.questionService.deleteQuestionById(id);
 
     return question;
-  }
-
-  @UseGuards(ConsultantAuthGuard)
-  @Get('all')
-  public async getAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ): Promise<Question[]> {
-    return this.questionService.getAllQuestions({
-      page,
-      limit,
-    });
   }
 
   @UseGuards(UserAuthGuard)
