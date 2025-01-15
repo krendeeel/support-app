@@ -18,19 +18,4 @@ export class AppController {
       YANDEX_AUTH_REDIRECT_URL: process.env.YANDEX_AUTH_REDIRECT_URL,
     };
   }
-
-  @Post('env')
-  public async setFrontendAppsUrls(
-    @Res() response: Response,
-    @Body() body,
-  ): Promise<Response> {
-    // TODO демонстрационное решение
-    process.env.YANDEX_CALLBACK_URL = body.YANDEX_CALLBACK_URL;
-    process.env.GOOGLE_CALLBACK_URL = body.GOOGLE_CALLBACK_URL;
-    process.env.GOOGLE_AUTH_REDIRECT_URL=body.GOOGLE_AUTH_REDIRECT_URL;
-    process.env.YANDEX_AUTH_REDIRECT_URL=body.YANDEX_AUTH_REDIRECT_URL;
-
-
-    return response.status(HttpStatus.OK).send();
-  }
 }

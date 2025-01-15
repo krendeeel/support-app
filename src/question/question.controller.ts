@@ -23,6 +23,7 @@ import {
   Sse,
   UseGuards,
 } from '@nestjs/common';
+import { Schema as MongooseSchema } from 'mongoose';
 
 @Controller('questions')
 export class QuestionController {
@@ -42,12 +43,18 @@ export class QuestionController {
   @UseGuards(ConsultantAuthGuard)
   @Get('all')
   public async getAll(
+    @Query('query') query: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: number = 100,
+    @Query('sortByAnswer') sortByAnswer: '0' | '1' = '0',
+    @Query('authorId') authorId: MongooseSchema.Types.ObjectId
   ): Promise<Question[]> {
     return this.questionService.getAllQuestions({
       page,
       limit,
+      query,
+      authorId,
+      sortByAnswer,
     });
   }
 
@@ -140,7 +147,7 @@ export class QuestionController {
   public async getAllByUser(
     @Req() request: IRequest,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: number = 100,
   ): Promise<Question[]> {
     return this.questionService.getQuestionsByAuthorId({
       page,
