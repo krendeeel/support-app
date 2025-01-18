@@ -16,34 +16,33 @@ export class QuestionService {
     page,
     query,
     authorId,
-    sortByAnswer,
+    byAnswer,
   }: {
     page?: number;
     limit?: number;
     query?: string;
-    sortByAnswer?: '0' | '1';
+    byAnswer?: '0' | '1';
     authorId?: MongooseSchema.Types.ObjectId;
   }): Promise<Question[]> {
     const find: FilterQuery<Question> = {};
-    const sort: FilterQuery<Question> = { createdAt: 1 };
 
     if (authorId) {
       find.author = authorId;
     }
 
-    if(query) {
+    if (query) {
       find.text = { $regex: query, $options: 'i' };
     }
 
-    if (sortByAnswer === '1') {
-      sort.answer = -1;
+    if (byAnswer === '1') {
+      find.answer = { $exists: true, $ne: null };
     }
 
-    if (sortByAnswer === '0') {
-      sort.answer = 1;
+    if (byAnswer === '0') {
+      find.answer = { $exists: false };
     }
 
-    return this.questionRepository.find(find, sort, page, limit);
+    return this.questionRepository.find(find, page, limit);
   }
 
   public async getQuestionsByAuthorId({
@@ -55,7 +54,7 @@ export class QuestionService {
     page?: number;
     limit?: number;
   }): Promise<Question[]> {
-    return this.questionRepository.find({ author: authorId }, { createdAt: 1 }, page, limit);
+    return this.questionRepository.find({ author: authorId }, page, limit);
   }
 
   public async createQuestion({

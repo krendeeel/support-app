@@ -12,14 +12,13 @@ export class QuestionRepository {
 
   public async find(
     query: FilterQuery<Question>,
-    sort: FilterQuery<Question>,
     page: number = 10,
     limit: number = 10,
   ): Promise<Question[]> {
     const skip = (page - 1) * limit;
     return this.questionModel
       .find(query)
-      .sort(sort)
+      .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
       .populate('author')

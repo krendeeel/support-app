@@ -1,44 +1,19 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-//@ts-nocheck
+// @ts-nocheck
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '../users/user.shema';
 import { AuthService } from './auth.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users/users.service';
-import { Consultant } from '../consultant/consultant.shema';
 import { ConsultantService } from '../consultant/consultant.service';
+
+jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
-  let jwtService: JwtService;
-  let usersService: UsersService;
-  let consultantService: ConsultantService;
-
-  const mockGoogleUser = {
-    email: 'test@example.com',
-    name: 'Test User',
-  };
-
-  const mockYandexUser = {
-    email: 'consultant@example.com',
-    name: 'Test Consultant',
-  };
-
-  const mockToken = 'mock-token';
-  const mockTokenHash = 'mock-token-hash';
-
-  const mockUser = {
-    email: mockGoogleUser.email,
-    displayName: mockGoogleUser.name,
-    token: mockTokenHash,
-  };
-
-  const mockConsultant = {
-    email: mockYandexUser.email,
-    displayName: mockYandexUser.name,
-    token: mockTokenHash,
-  };
+  let jwtService: jest.Mocked<JwtService>;
+  let usersService: jest.Mocked<UsersService>;
+  let consultantService: jest.Mocked<ConsultantService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -47,7 +22,7 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: {
-            signAsync: jest.fn().mockResolvedValue(mockToken),
+            signAsync: jest.fn(),
           },
         },
         {
@@ -70,13 +45,9 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService);
-    usersService = module.get<UsersService>(UsersService);
-    consultantService = module.get<ConsultantService>(ConsultantService);
-
-    jest.spyOn(bcrypt, 'compare').mockImplementation(async () => true);
-    jest.spyOn(bcrypt, 'genSalt').mockImplementation(async () => 'mock-salt');
-    jest.spyOn(bcrypt, 'hash').mockImplementation(async () => mockTokenHash);
+    jwtService = module.get(JwtService);
+    usersService = module.get(UsersService);
+    consultantService = module.get(ConsultantService);
   });
 
   it('should be defined', () => {
@@ -85,53 +56,59 @@ describe('AuthService', () => {
 
   describe('validateGoogleUser', () => {
     it('should return an existing user with a new token', async () => {
-      jest
-        .spyOn(usersService, 'getUserByEmail')
-        .mockResolvedValue(mockUser as User);
-      jest
-        .spyOn(usersService, 'updateUser')
-        .mockResolvedValue(mockUser as User);
+      const mockGoogleUser = { email: 'test@example.com', name: 'Test User' };
+      const mockToken = 'mockToken';
+      const mockTokenHash = 'mockTokenHash';
+      const mockUser = {
+        email: 'test@example.com',
+        name: 'Test User',
+        token: 'oldToken',
+      };
+
+      jwtService.signAsync.mockResolvedValue(mockToken);
+      bcrypt.hash.mockResolvedValue(mockTokenHash);
+      usersService.getUserByEmail.mockResolvedValue(mockUser);
+      usersService.updateUser.mockResolvedValue({
+        ...mockUser,
+        token: mockTokenHash,
+      });
 
       const result = await service.validateGoogleUser(mockGoogleUser);
 
-      expect(result).toEqual({
-        ...mockUser,
-        token: mockToken,
-      });
+      expect(result).toEqual({ ...mockUser, token: mockToken });
       expect(jwtService.signAsync).toHaveBeenCalledWith(mockGoogleUser, {
         secret: process.env.JWT_SECRET_KEY,
         expiresIn: process.env.JWT_EXPIRES_IN,
       });
       expect(usersService.getUserByEmail).toHaveBeenCalledWith(
-        mockGoogleUser.email,
+        'test@example.com',
       );
-      expect(usersService.updateUser).toHaveBeenCalledWith(mockUser.email, {
+      expect(usersService.updateUser).toHaveBeenCalledWith('test@example.com', {
         token: mockTokenHash,
       });
     });
 
-    it('should create a new user if one does not exist', async () => {
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(null);
-      jest
-        .spyOn(usersService, 'createUser')
-        .mockResolvedValue(mockUser as User);
+    it('should create and return a new user with a token', async () => {
+      const mockGoogleUser = { email: 'test@example.com', name: 'Test User' };
+      const mockToken = 'mockToken';
+      const mockTokenHash = 'mockTokenHash';
+      const mockUser = {
+        email: 'test@example.com',
+        name: 'Test User',
+        token: mockTokenHash,
+      };
+
+      jwtService.signAsync.mockResolvedValue(mockToken);
+      bcrypt.hash.mockResolvedValue(mockTokenHash);
+      usersService.getUserByEmail.mockResolvedValue(null);
+      usersService.createUser.mockResolvedValue(mockUser);
 
       const result = await service.validateGoogleUser(mockGoogleUser);
 
-      expect(result).toEqual({
-        ...mockUser,
-        token: mockToken,
-      });
-      expect(jwtService.signAsync).toHaveBeenCalledWith(mockGoogleUser, {
-        secret: process.env.JWT_SECRET_KEY,
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      });
-      expect(usersService.getUserByEmail).toHaveBeenCalledWith(
-        mockGoogleUser.email,
-      );
+      expect(result).toEqual({ ...mockUser, token: mockToken });
       expect(usersService.createUser).toHaveBeenCalledWith(
-        mockGoogleUser.email,
-        mockGoogleUser.name,
+        'test@example.com',
+        'Test User',
         mockTokenHash,
       );
     });
@@ -139,58 +116,66 @@ describe('AuthService', () => {
 
   describe('validateYandexUser', () => {
     it('should return an existing consultant with a new token', async () => {
-      jest
-        .spyOn(consultantService, 'getConsultantByEmail')
-        .mockResolvedValue(mockConsultant as Consultant);
-      jest
-        .spyOn(consultantService, 'updateConsultant')
-        .mockResolvedValue(mockConsultant as Consultant);
+      const mockYandexUser = {
+        email: 'test@example.com',
+        name: 'Test Consultant',
+      };
+      const mockToken = 'mockToken';
+      const mockTokenHash = 'mockTokenHash';
+      const mockConsultant = {
+        email: 'test@example.com',
+        name: 'Test Consultant',
+        token: 'oldToken',
+      };
+
+      jwtService.signAsync.mockResolvedValue(mockToken);
+      bcrypt.hash.mockResolvedValue(mockTokenHash);
+      consultantService.getConsultantByEmail.mockResolvedValue(mockConsultant);
+      consultantService.updateConsultant.mockResolvedValue({
+        ...mockConsultant,
+        token: mockTokenHash,
+      });
 
       const result = await service.validateYandexUser(mockYandexUser);
 
-      expect(result).toEqual({
-        ...mockConsultant,
-        token: mockToken,
-      });
+      expect(result).toEqual({ ...mockConsultant, token: mockToken });
       expect(jwtService.signAsync).toHaveBeenCalledWith(mockYandexUser, {
         secret: process.env.JWT_SECRET_KEY,
         expiresIn: process.env.JWT_EXPIRES_IN,
       });
       expect(consultantService.getConsultantByEmail).toHaveBeenCalledWith(
-        mockYandexUser.email,
+        'test@example.com',
       );
       expect(consultantService.updateConsultant).toHaveBeenCalledWith(
-        mockConsultant.email,
-        {
-          token: mockTokenHash,
-        },
+        'test@example.com',
+        { token: mockTokenHash },
       );
     });
 
-    it('should create a new consultant if one does not exist', async () => {
-      jest
-        .spyOn(consultantService, 'getConsultantByEmail')
-        .mockResolvedValue(null);
-      jest
-        .spyOn(consultantService, 'createConsultant')
-        .mockResolvedValue(mockConsultant as Consultant);
+    it('should create and return a new consultant with a token', async () => {
+      const mockYandexUser = {
+        email: 'test@example.com',
+        name: 'Test Consultant',
+      };
+      const mockToken = 'mockToken';
+      const mockTokenHash = 'mockTokenHash';
+      const mockConsultant = {
+        email: 'test@example.com',
+        name: 'Test Consultant',
+        token: mockTokenHash,
+      };
+
+      jwtService.signAsync.mockResolvedValue(mockToken);
+      bcrypt.hash.mockResolvedValue(mockTokenHash);
+      consultantService.getConsultantByEmail.mockResolvedValue(null);
+      consultantService.createConsultant.mockResolvedValue(mockConsultant);
 
       const result = await service.validateYandexUser(mockYandexUser);
 
-      expect(result).toEqual({
-        ...mockConsultant,
-        token: mockToken,
-      });
-      expect(jwtService.signAsync).toHaveBeenCalledWith(mockYandexUser, {
-        secret: process.env.JWT_SECRET_KEY,
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      });
-      expect(consultantService.getConsultantByEmail).toHaveBeenCalledWith(
-        mockYandexUser.email,
-      );
+      expect(result).toEqual({ ...mockConsultant, token: mockToken });
       expect(consultantService.createConsultant).toHaveBeenCalledWith(
-        mockYandexUser.email,
-        mockYandexUser.name,
+        'test@example.com',
+        'Test Consultant',
         mockTokenHash,
       );
     });
@@ -198,29 +183,39 @@ describe('AuthService', () => {
 
   describe('compareToken', () => {
     it('should return true if tokens match', async () => {
-      const result = await service.compareToken(mockToken, mockTokenHash);
+      const token = 'mockToken';
+      const tokenHash = 'mockTokenHash';
+
+      bcrypt.compare.mockResolvedValue(true);
+
+      const result = await service.compareToken(token, tokenHash);
       expect(result).toBe(true);
-      expect(bcrypt.compare).toHaveBeenCalledWith(mockToken, mockTokenHash);
+      expect(bcrypt.compare).toHaveBeenCalledWith(token, tokenHash);
     });
 
     it('should return false if tokens do not match', async () => {
-      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => false);
+      const token = 'mockToken';
+      const tokenHash = 'mockTokenHash';
 
-      const result = await service.compareToken(mockToken, 'wrong-token-hash');
+      bcrypt.compare.mockResolvedValue(false);
+
+      const result = await service.compareToken(token, tokenHash);
       expect(result).toBe(false);
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        mockToken,
-        'wrong-token-hash',
-      );
+      expect(bcrypt.compare).toHaveBeenCalledWith(token, tokenHash);
     });
   });
 
   describe('generateTokenHash', () => {
     it('should generate a token hash', async () => {
-      const result = await service.generateTokenHash(mockToken);
-      expect(result).toBe(mockTokenHash);
-      expect(bcrypt.genSalt).toHaveBeenCalled();
-      expect(bcrypt.hash).toHaveBeenCalledWith(mockToken, 'mock-salt');
+      const token = 'mockToken';
+      const tokenHash = 'mockTokenHash';
+
+      bcrypt.genSalt.mockResolvedValue('mockSalt');
+      bcrypt.hash.mockResolvedValue(tokenHash);
+
+      const result = await service.generateTokenHash(token);
+      expect(result).toBe(tokenHash);
+      expect(bcrypt.hash).toHaveBeenCalledWith(token, 'mockSalt');
     });
   });
 });

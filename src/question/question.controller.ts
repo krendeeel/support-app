@@ -46,15 +46,15 @@ export class QuestionController {
     @Query('query') query: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 100,
-    @Query('sortByAnswer') sortByAnswer: '0' | '1' = '0',
-    @Query('authorId') authorId: MongooseSchema.Types.ObjectId
+    @Query('byAnswer') byAnswer: '0' | '1',
+    @Query('authorId') authorId: MongooseSchema.Types.ObjectId,
   ): Promise<Question[]> {
     return this.questionService.getAllQuestions({
       page,
       limit,
       query,
       authorId,
-      sortByAnswer,
+      byAnswer,
     });
   }
 
