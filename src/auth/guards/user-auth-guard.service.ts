@@ -33,12 +33,11 @@ export class UserAuthGuard implements CanActivate {
     let payload = null;
 
     try {
-      payload = await this.jwtService.verifyAsync<{ email: string }>(
-        token,
-        { secret: process.env.JWT_SECRET_KEY },
-      );
-    }catch (e) {
-      throw new UnauthorizedException();
+      payload = await this.jwtService.verifyAsync<{ email: string }>(token, {
+        secret: process.env.JWT_SECRET_KEY,
+      });
+    } catch (e) {
+      throw new UnauthorizedException(e);
     }
 
     if (!payload) {
