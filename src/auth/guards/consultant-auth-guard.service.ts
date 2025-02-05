@@ -30,10 +30,16 @@ export class ConsultantAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    const payload = await this.jwtService.verifyAsync<{ email: string }>(
-      token,
-      { secret: process.env.JWT_SECRET_KEY },
-    );
+    let payload = null;
+
+    try {
+      payload = await this.jwtService.verifyAsync<{ email: string }>(
+        token,
+        { secret: process.env.JWT_SECRET_KEY },
+      );
+    } catch (error) {
+      throw new UnauthorizedException();
+    }
 
     if (!payload) {
       throw new UnauthorizedException();
