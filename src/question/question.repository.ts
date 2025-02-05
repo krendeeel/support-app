@@ -21,12 +21,13 @@ export class QuestionRepository {
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
-      .populate('author')
+      .populate('author', '-token')
       .populate({
         path: 'answer',
         populate: {
           path: 'author',
           model: 'Consultant',
+          select: '-token',
         },
       })
       .exec();
